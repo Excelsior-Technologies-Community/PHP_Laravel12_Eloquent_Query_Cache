@@ -1,66 +1,239 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# PHP_Laravel12_Eloquent_Query_Cache
+```php
+Laravel 12 based project demonstrating native Eloquent Query Caching using Cache::remember() with automatic cache invalidation and Blade UI.
+```
+# Step 1: Install Laravel 12 – Create Project
+Open Terminal / CMD:
+```php
+composer create-project laravel/laravel:^12.0 PHP_Laravel12_Eloquent_Query_Cache
+```
+Move to project folder:
+```php
+cd PHP_Laravel12_Eloquent_Query_Cache
+```
+Generate application key:
+```php
+php artisan key:generate
+```
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+# Step 2: Setup Database (.env File)
+Open .env file and configure database credentials:
+```php
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3307
+DB_DATABASE=laravel12_query_cache
+DB_USERNAME=root
+DB_PASSWORD=
+```
+Create database in MySQL / phpMyAdmin:
+```php
+CREATE DATABASE laravel12_query_cache;
+```
 
-## About Laravel
+# Step 3: Run Default Migrations
+```php
+php artisan migrate
+```
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+# Step 4: Verify Cache Configuration
+Open .env file:
+```php
+CACHE_STORE=file
+```
+# Explanation
+```php
+- Uses Laravel’s native file-based cache
+- No third-party packages required
+- Perfect for demo & learning purposes
+```
+# Step 5: Configure User Model with Cached Query
+Path:
+```php
+app/Models/Product.php
+```
+```php
+<?php
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+namespace App\Models;
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+use Illuminate\Database\Eloquent\Model;
+use Rennokki\QueryCache\Traits\QueryCacheable;
 
-## Learning Laravel
+class Product extends Model
+{
+    use QueryCacheable;
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+    protected $fillable = ['name', 'price'];
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+    // 🔥 Cache settings
+    protected $cacheFor = 10; // seconds
+    protected $flushCacheOnUpdate = true;
+    protected static $flushCacheOnCreate = true;
+}
+```
+# Explanation
+```php
+- Cache::remember() stores query result in cache
+- First request → database query
+- Next requests → cache hit
+- Cache is cleared automatically when data changes
+```
+# Step 6: Create Controller
+Create controller:
+```php
+php artisan make:controller ProductController
+```
+Path:
+```php
+app/Http/Controllers/ProductController.php
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```php
+<?php
 
-## Laravel Sponsors
+namespace App\Http\Controllers;
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+use App\Models\Product;
+use Illuminate\Http\Request;
 
-### Premium Partners
+class ProductController extends Controller
+{
+    public function index()
+    {
+        // 🔥 THIS QUERY IS AUTO CACHED
+        $products = Product::orderBy('id', 'desc')->get();
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+        return view('products.index', compact('products'));
+    }
 
-## Contributing
+    public function create()
+    {
+        return view('products.create');
+    }
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+    public function store(Request $request)
+    {
+        $request->validate([
+            'name'  => 'required',
+            'price' => 'required|numeric',
+        ]);
 
-## Code of Conduct
+        Product::create($request->only('name', 'price'));
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+        // 🔥 Cache auto flushed by package
+        return redirect()->route('products.index')
+            ->with('success', 'Product Added (Cache Auto Cleared)');
+    }
+}
+```
+# Explanation
+```php
+- Controller fetches data only from cached model method
+- No direct database query inside controller
+```
 
-## Security Vulnerabilities
+# Step 7: Define Web Routes
+Path:
+```php
+routes/web.php
+```
+```php
+<?php
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ProductController;
 
-## License
+Route::get('/', function () {
+    return view('welcome');
+});
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Route::get('/', [ProductController::class, 'index'])->name('products.index');
+Route::get('/create', [ProductController::class, 'create'])->name('products.create');
+Route::post('/store', [ProductController::class, 'store'])->name('products.store');
+```
+# Step 8: Create Blade UI
+Create directory:
+```php
+resources/views/products
+```
+Create file:
+```php
+resources/views/products/index.blade.php
+```
+```php
+@extends('layouts.app')
+
+@section('content')
+
+<div class="top-bar">
+    <h1>Products</h1>
+    <a href="{{ route('products.create') }}" class="btn btn-primary">
+        + Add Product
+    </a>
+</div>
+
+@if(session('success'))
+    <div class="alert-success">
+        {{ session('success') }}
+    </div>
+@endif
+
+<table>
+    <thead>
+        <tr>
+            <th width="80">ID</th>
+            <th>Product Name</th>
+            <th width="150">Price</th>
+            <th width="200">Created At</th>
+        </tr>
+    </thead>
+    <tbody>
+        @forelse($products as $product)
+            <tr>
+                <td>{{ $product->id }}</td>
+                <td>{{ $product->name }}</td>
+                <td>₹ {{ number_format($product->price, 2) }}</td>
+                <td>{{ $product->created_at->format('d-m-Y h:i A') }}</td>
+            </tr>
+        @empty
+            <tr>
+                <td colspan="4" style="text-align:center">
+                    No products found
+                </td>
+            </tr>
+        @endforelse
+    </tbody>
+</table>
+
+
+
+@endsection
+```
+# Explanation
+```php
+- UI always displays cached data
+- No database logic inside Blade files
+- Clean separation of concerns
+```
+
+# Step 9: Test Cache Behavior
+
+Run Laravel development server:
+```php
+php artisan serve
+```
+Open browser:
+```php
+http://127.0.0.1:8000/create
+```
+<img width="1203" height="458" alt="image" src="https://github.com/user-attachments/assets/8034d182-2b28-4470-953b-e2988b934062" />
+
+```php
+http://127.0.0.1:8000/
+```
+
+<img width="1328" height="429" alt="image" src="https://github.com/user-attachments/assets/a19f8d93-3621-4b1b-a7f2-b390bdc9ad04" />
+
+
+
