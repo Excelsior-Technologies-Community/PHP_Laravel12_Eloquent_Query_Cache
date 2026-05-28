@@ -9,10 +9,16 @@ class Product extends Model
 {
     use QueryCacheable;
 
-    protected $fillable = ['name', 'price'];
+    protected $fillable = [
+        'name',
+        'price'
+    ];
 
-    // 🔥 Cache settings
-    protected $cacheFor = 10; // seconds
-    protected $flushCacheOnUpdate = true;
+    // Cache for 10 seconds
+    public $cacheFor = 10;
+
+    // Auto clear cache
+    protected static $flushCacheOnUpdate = true;
+    protected static $flushCacheOnDelete = true;
     protected static $flushCacheOnCreate = true;
 }
