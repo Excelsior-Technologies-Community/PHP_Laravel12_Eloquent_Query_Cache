@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\CacheLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
@@ -12,17 +13,37 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $search = $request->search;
+        $page = $request->get('page', 1);
 
-        $products = Product::when($search, function ($query) use ($search) {
+        $cacheKey = "products_" . md5($search . "_" . $page);
 
-            $query->where('name', 'like', "%{$search}%")
-                ->orWhere('price', 'like', "%{$search}%");
+        if (Cache::has($cacheKey)) {
 
-        })
-            ->orderBy('id', 'asc')
-            ->paginate(3);
+            // CACHE HIT
+            CacheLog::create([
+                'type' => 'HIT',
+                'query' => $search
+            ]);
 
-        // Dashboard Stats
+            $products = Cache::get($cacheKey);
+        } else {
+
+            // CACHE MISS
+            $products = Product::when($search, function ($query) use ($search) {
+                $query->where('name', 'like', "%{$search}%")
+                    ->orWhere('price', 'like', "%{$search}%");
+            })
+                ->orderBy('id', 'asc')
+                ->paginate(3);
+
+            Cache::put($cacheKey, $products, 10);
+
+            CacheLog::create([
+                'type' => 'MISS',
+                'query' => $search
+            ]);
+        }
+
         $totalProducts = Product::count();
         $totalPrice = Product::sum('price');
 
@@ -98,5 +119,58 @@ class ProductController extends Controller
         return redirect()
             ->route('products.index')
             ->with('success', 'Cache Cleared Successfully');
+    }
+
+    public function exportCSV()
+    {
+        $fileName = 'products.csv';
+        $products = Product::all();
+
+        $headers = [
+            "Content-type" => "text/csv",
+            "Content-Disposition" => "attachment; filename=$fileName",
+        ];
+
+        $callback = function () use ($products) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['ID', 'Name', 'Price']);
+
+            foreach ($products as $product) {
+                fputcsv($file, [
+                    $product->id,
+                    $product->name,
+                    $product->price
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function cacheStatus()
+    {
+        return response()->json([
+            'cache_driver' => config('cache.default'),
+            'cached_items' => Cache::getStore() instanceof \Illuminate\Cache\TaggableStore ? 'Taggable Cache' : 'File Cache',
+        ]);
+    }
+
+    public function warmUpCache()
+    {
+        Product::orderBy('id', 'desc')->get();
+
+        return redirect()
+            ->route('products.index')
+            ->with('success', 'Cache Warmed Up Successfully');
+    }
+
+    public function analytics()
+    {
+        $hits = CacheLog::where('type', 'HIT')->count();
+        $misses = CacheLog::where('type', 'MISS')->count();
+
+        return view('products.analytics', compact('hits', 'misses'));
     }
 }

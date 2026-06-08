@@ -2,20 +2,50 @@
 
 @section('content')
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4 p-3 rounded-4"
+     style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(10px);">
 
-    <h2>Laravel Eloquent Query Cache</h2>
-
+    <!-- LEFT SIDE: TITLE + SUBTITLE -->
     <div>
+        <h2 class="mb-1 fw-bold text-white">
+            ⚡ Laravel Query Cache Dashboard
+        </h2>
+        <small style="color:#94a3b8;">
+            Fast • Cached • Optimized Product System
+        </small>
+    </div>
+
+    <!-- RIGHT SIDE: ACTION BUTTONS -->
+    <div class="d-flex flex-wrap gap-2 justify-content-end">
 
         <a href="{{ route('products.create') }}"
-           class="btn btn-primary">
-            Add Product
+           class="btn btn-primary btn-sm px-3 rounded-pill">
+            ➕ Add
+        </a>
+
+        <a href="{{ route('products.export') }}"
+           class="btn btn-success btn-sm px-3 rounded-pill">
+            ⬇ Export
+        </a>
+
+        <a href="{{ route('products.warmUp') }}"
+           class="btn btn-warning btn-sm px-3 rounded-pill text-dark">
+            ⚡ Warm
+        </a>
+
+        <a href="{{ route('products.cacheStatus') }}"
+           class="btn btn-info btn-sm px-3 rounded-pill text-dark">
+            📊 Status
+        </a>
+
+        <a href="{{ route('products.analytics') }}"
+           class="btn btn-dark btn-sm px-3 rounded-pill">
+            📈 Analytics
         </a>
 
         <a href="{{ route('products.clearCache') }}"
-           class="btn btn-danger">
-            Clear Cache
+           class="btn btn-danger btn-sm px-3 rounded-pill">
+            🗑 Clear
         </a>
 
     </div>
@@ -24,9 +54,9 @@
 
 @if(session('success'))
 
-    <div class="alert alert-success">
-        {{ session('success') }}
-    </div>
+<div class="alert alert-success">
+    {{ session('success') }}
+</div>
 
 @endif
 
@@ -69,18 +99,18 @@
 <!-- Search Form -->
 
 <form method="GET"
-      action="{{ route('products.index') }}"
-      class="mb-4">
+    action="{{ route('products.index') }}"
+    class="mb-4">
 
     <div class="row g-2">
 
         <div class="col-md-10">
 
             <input type="text"
-                   name="search"
-                   class="form-control"
-                   placeholder="Search Product..."
-                   value="{{ request('search') }}">
+                name="search"
+                class="form-control"
+                placeholder="Search Product..."
+                value="{{ request('search') }}">
 
         </div>
 
@@ -126,63 +156,63 @@
 
                 @forelse($products as $product)
 
-                    <tr>
+                <tr>
 
-                        <td>
-                            {{ $product->id }}
-                        </td>
+                    <td>
+                        {{ $product->id }}
+                    </td>
 
-                        <td>
-                            {{ $product->name }}
-                        </td>
+                    <td>
+                        {{ $product->name }}
+                    </td>
 
-                        <td>
-                            ₹ {{ number_format($product->price, 2) }}
-                        </td>
+                    <td>
+                        ₹ {{ number_format($product->price, 2) }}
+                    </td>
 
-                        <td>
-                            {{ $product->created_at->format('d-m-Y h:i A') }}
-                        </td>
+                    <td>
+                        {{ $product->created_at->format('d-m-Y h:i A') }}
+                    </td>
 
-                        <td>
+                    <td>
 
-                            <a href="{{ route('products.edit', $product->id) }}"
-                               class="btn btn-sm btn-info">
-                                Edit
-                            </a>
+                        <a href="{{ route('products.edit', $product->id) }}"
+                            class="btn btn-sm btn-info">
+                            Edit
+                        </a>
 
-                            <form action="{{ route('products.destroy', $product->id) }}"
-                                  method="POST"
-                                  class="d-inline">
+                        <form action="{{ route('products.destroy', $product->id) }}"
+                            method="POST"
+                            class="d-inline">
 
-                                @csrf
-                                @method('DELETE')
+                            @csrf
+                            @method('DELETE')
 
-                                <button class="btn btn-sm btn-danger"
-                                        onclick="return confirm('Delete Product?')">
+                            <button class="btn btn-sm btn-danger"
+                                onclick="return confirm('Delete Product?')">
 
-                                    Delete
+                                Delete
 
-                                </button>
+                            </button>
 
-                            </form>
+                        </form>
 
-                        </td>
+                    </td>
 
-                    </tr>
+                </tr>
 
                 @empty
 
-                    <tr>
+                <tr>
 
-                        <td colspan="5"
-                            class="text-center py-4">
+                    <td colspan="5"
+                        class="text-center py-4">
 
-                            No Products Found
+                        No Products Found
 
-                        </td>
+                    </td>
 
-                    </tr>
+                </tr>
 
                 @endforelse
 
@@ -198,99 +228,99 @@
 
 @if ($products->hasPages())
 
-    <div class="d-flex justify-content-center mt-4">
+<div class="d-flex justify-content-center mt-4">
 
-        <nav>
+    <nav>
 
-            <ul class="pagination">
+        <ul class="pagination">
 
-                {{-- Previous Button --}}
-                @if ($products->onFirstPage())
+            {{-- Previous Button --}}
+            @if ($products->onFirstPage())
 
-                    <li class="page-item disabled">
-                        <span class="page-link">
-                            Previous
-                        </span>
-                    </li>
+            <li class="page-item disabled">
+                <span class="page-link">
+                    Previous
+                </span>
+            </li>
 
-                @else
+            @else
 
-                    <li class="page-item">
+            <li class="page-item">
 
-                        <a class="page-link"
-                           href="{{ $products->previousPageUrl() }}">
+                <a class="page-link"
+                    href="{{ $products->previousPageUrl() }}">
 
-                            Previous
+                    Previous
 
-                        </a>
+                </a>
 
-                    </li>
+            </li>
 
-                @endif
+            @endif
 
-                {{-- Page Numbers --}}
-                @foreach ($products->getUrlRange(1, $products->lastPage()) as $page => $url)
+            {{-- Page Numbers --}}
+            @foreach ($products->getUrlRange(1, $products->lastPage()) as $page => $url)
 
-                    @if ($page == $products->currentPage())
+            @if ($page == $products->currentPage())
 
-                        <li class="page-item active">
+            <li class="page-item active">
 
-                            <span class="page-link">
+                <span class="page-link">
 
-                                {{ $page }}
+                    {{ $page }}
 
-                            </span>
+                </span>
 
-                        </li>
+            </li>
 
-                    @else
+            @else
 
-                        <li class="page-item">
+            <li class="page-item">
 
-                            <a class="page-link"
-                               href="{{ $url }}">
+                <a class="page-link"
+                    href="{{ $url }}">
 
-                                {{ $page }}
+                    {{ $page }}
 
-                            </a>
+                </a>
 
-                        </li>
+            </li>
 
-                    @endif
+            @endif
 
-                @endforeach
+            @endforeach
 
-                {{-- Next Button --}}
-                @if ($products->hasMorePages())
+            {{-- Next Button --}}
+            @if ($products->hasMorePages())
 
-                    <li class="page-item">
+            <li class="page-item">
 
-                        <a class="page-link"
-                           href="{{ $products->nextPageUrl() }}">
+                <a class="page-link"
+                    href="{{ $products->nextPageUrl() }}">
 
-                            Next
+                    Next
 
-                        </a>
+                </a>
 
-                    </li>
+            </li>
 
-                @else
+            @else
 
-                    <li class="page-item disabled">
+            <li class="page-item disabled">
 
-                        <span class="page-link">
-                            Next
-                        </span>
+                <span class="page-link">
+                    Next
+                </span>
 
-                    </li>
+            </li>
 
-                @endif
+            @endif
 
-            </ul>
+        </ul>
 
-        </nav>
+    </nav>
 
-    </div>
+</div>
 
 @endif
 
