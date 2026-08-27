@@ -8,6 +8,7 @@ class CacheLog extends Model
 {
     protected $fillable = [
         'type',
-        'query'
+        'query',
+        'duration',
     ];
 }

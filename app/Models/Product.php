@@ -3,22 +3,21 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Rennokki\QueryCache\Traits\QueryCacheable;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
-    use QueryCacheable;
+    use SoftDeletes;
 
     protected $fillable = [
+        'category_id',
         'name',
-        'price'
+        'price',
     ];
 
-    // Cache for 10 seconds
-    public $cacheFor = 10;
-
-    // Auto clear cache
-    protected static $flushCacheOnUpdate = true;
-    protected static $flushCacheOnDelete = true;
-    protected static $flushCacheOnCreate = true;
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
+    }
 }

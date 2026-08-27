@@ -2,7 +2,7 @@
 
 @section('content')
 
-<div class="card bg-dark border-secondary">
+<div class="card border-0 shadow-sm">
 
     <div class="card-body">
 
@@ -22,6 +22,22 @@
                        name="name"
                        value="{{ $product->name }}"
                        class="form-control">
+
+            </div>
+
+            <div class="mb-3">
+
+                <label>Category</label>
+
+                <select name="category_id" class="form-control">
+                    <option value="">No Category</option>
+                    @foreach($categories as $category)
+                        <option value="{{ $category->id }}"
+                            {{ $product->category_id == $category->id ? 'selected' : '' }}>
+                            {{ $category->name }}
+                        </option>
+                    @endforeach
+                </select>
 
             </div>
 
